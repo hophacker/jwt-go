@@ -2,8 +2,9 @@ package jwt_test
 
 import (
 	"fmt"
-	"github.com/dgrijalva/jwt-go"
 	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
 
 // Example (atypical) using the StandardClaims type by itself to parse a token.
@@ -68,7 +69,7 @@ func ExampleParseWithClaims_customClaimsType() {
 		})
 
 		if claims, ok := token.Claims.(*MyCustomClaims); ok && token.Valid {
-			fmt.Printf("%v %v", claims.Foo, claims.StandardClaims.ExpiresAt)
+			fmt.Printf("%v %v", claims.Foo, claims.StandardClaims.ExpiresAtVal())
 		} else {
 			fmt.Println(err)
 		}

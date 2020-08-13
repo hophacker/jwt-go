@@ -3,6 +3,7 @@ package jwt
 import (
 	"crypto/subtle"
 	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -16,13 +17,29 @@ type Claims interface {
 // https://tools.ietf.org/html/rfc7519#section-4.1
 // See examples for how to use this with your own claim types
 type StandardClaims struct {
-	Audience  string `json:"aud,omitempty"`
-	ExpiresAt int64  `json:"exp,omitempty"`
-	Id        string `json:"jti,omitempty"`
-	IssuedAt  int64  `json:"iat,omitempty"`
-	Issuer    string `json:"iss,omitempty"`
-	NotBefore int64  `json:"nbf,omitempty"`
-	Subject   string `json:"sub,omitempty"`
+	Audience  string      `json:"aud,omitempty"`
+	ExpiresAt interface{} `json:"exp,omitempty"`
+	Id        string      `json:"jti,omitempty"`
+	IssuedAt  int64       `json:"iat,omitempty"`
+	Issuer    string      `json:"iss,omitempty"`
+	NotBefore int64       `json:"nbf,omitempty"`
+	Subject   string      `json:"sub,omitempty"`
+}
+
+func (c StandardClaims) ExpiresAtVal() int64 {
+	s, ok := c.ExpiresAt.(string)
+	if ok {
+		parsed, err := strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return 0
+		}
+		return parsed
+	}
+	i, ok := c.ExpiresAt.(int64)
+	if ok {
+		return i
+	}
+	return 0
 }
 
 // Validates time based claims "exp, iat, nbf".
@@ -36,7 +53,7 @@ func (c StandardClaims) Valid() error {
 	// The claims below are optional, by default, so if they are set to the
 	// default value in Go, let's not fail the verification for them.
 	if c.VerifyExpiresAt(now, false) == false {
-		delta := time.Unix(now, 0).Sub(time.Unix(c.ExpiresAt, 0))
+		delta := time.Unix(now, 0).Sub(time.Unix(c.ExpiresAtVal(), 0))
 		vErr.Inner = fmt.Errorf("token is expired by %v", delta)
 		vErr.Errors |= ValidationErrorExpired
 	}
@@ -67,7 +84,7 @@ func (c *StandardClaims) VerifyAudience(cmp string, req bool) bool {
 // Compares the exp claim against cmp.
 // If required is false, this method will return true if the value matches or is unset
 func (c *StandardClaims) VerifyExpiresAt(cmp int64, req bool) bool {
-	return verifyExp(c.ExpiresAt, cmp, req)
+	return verifyExp(c.ExpiresAtVal(), cmp, req)
 }
 
 // Compares the iat claim against cmp.
